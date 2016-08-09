@@ -1,0 +1,216 @@
+{
+    "kind": "Template",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "gogs-persistent",
+        "creationTimestamp": null,
+        "annotations": {
+            "description": "Gogs service, with persistent storage",
+            "tags": "repository-managers,gogs"
+        }
+    },
+    "objects": [{
+        "kind": "Service",
+        "apiVersion": "v1",
+        "metadata": {
+            "name": "${GOGS_SERVICE_NAME}",
+            "creationTimestamp": null
+        },
+        "spec": {
+            "ports": [{
+                "name": "http",
+                "port": 3000,
+                "targetPort": 3000
+            }],
+            "selector": {
+                "name": "${GOGS_SERVICE_NAME}"
+            },
+            "portalIP": "",
+            "type": "ClusterIP",
+            "sessionAffinity": "None"
+        },
+        "status": {
+            "loadBalancer": {}
+        }
+    }, {
+        "kind": "PersistentVolumeClaim",
+        "apiVersion": "v1",
+        "metadata": {
+            "name": "${GOGS_SERVICE_NAME}-git-claim"
+        },
+        "spec": {
+            "accessModes": [
+                "ReadWriteOnce"
+            ],
+            "resources": {
+                "requests": {
+                    "storage": "${GIT_VOLUME_CAPACITY}"
+                }
+            }
+        }
+    },
+    {
+        "kind": "PersistentVolumeClaim",
+        "apiVersion": "v1",
+        "metadata": {
+            "name": "${GOGS_SERVICE_NAME}-data-claim"
+        },
+        "spec": {
+            "accessModes": [
+                "ReadWriteOnce"
+            ],
+            "resources": {
+                "requests": {
+                    "storage": "${DATA_VOLUME_CAPACITY}"
+                }
+            }
+        }
+    },
+    {
+        "kind": "Route",
+        "apiVersion": "v1",
+        "metadata": {
+            "name": "gogs"
+        },
+        "spec": {
+            "host": "${APPLICATION_HOSTNAME}",
+            "to": {
+                "kind": "Service",
+                "name": "${GOGS_SERVICE_NAME}"
+            }
+        }
+    }, {
+        "kind": "DeploymentConfig",
+        "apiVersion": "v1",
+        "metadata": {
+            "name": "${GOGS_SERVICE_NAME}",
+            "creationTimestamp": null
+        },
+        "spec": {
+            "strategy": {
+                "type": "Rolling",
+                "rollingParams": {
+                    "updatePeriodSeconds": 1,
+                    "intervalSeconds": 1,
+                    "timeoutSeconds": 600
+                },
+                "resources": {}
+            },
+            "triggers": [{
+                "type": "ConfigChange"
+            }],
+            "replicas": 1,
+            "selector": {
+                "name": "${GOGS_SERVICE_NAME}"
+            },
+            "template": {
+                "metadata": {
+                    "creationTimestamp": null,
+                    "labels": {
+                        "name": "${GOGS_SERVICE_NAME}"
+                    }
+                },
+                "spec": {
+                    "containers": [{
+                        "name": "gogs",
+                        "image": "fabric8/gogs:2.2.218",
+                        "ports": [{
+                            "containerPort": 3000,
+                            "protocol": "TCP"
+                        }],
+                        "livenessProbe": {
+                            "httpGet": {
+                                "port": 3000
+                            },
+                            "initialDelaySeconds": 300,
+                            "timeoutSeconds": 1
+                        },
+                        "readinessProbe": {
+                            "httpGet": {
+                                "port": 3000
+                            },
+                            "initialDelaySeconds": 20,
+                            "timeoutSeconds": 1
+                        },
+                        "resources": {
+                            "limits": {
+                                "memory": "${MEMORY_LIMIT}"
+                            }
+                        },
+                        "volumeMounts": [
+                        {
+                            "name": "${GOGS_SERVICE_NAME}-git",
+                            "mountPath": "/home/git"
+                        },
+                        {
+                        "name": "${GOGS_SERVICE_NAME}-data",
+                        "mountPath": "/opt/gogs/data"
+                        }
+                    ],
+                        "terminationMessagePath": "/dev/termination-log",
+                        "imagePullPolicy": "IfNotPresent",
+                        "capabilities": {},
+                        "securityContext": {
+                            "capabilities": {},
+                            "privileged": true
+                        }
+                    }],
+                    "volumes": [
+                    {
+                        "name": "${GOGS_SERVICE_NAME}-git",
+                        "persistentVolumeClaim": {
+                            "claimName": "${GOGS_SERVICE_NAME}-git-claim"
+                        }
+                    },
+                    {
+                        "name": "${GOGS_SERVICE_NAME}-data",
+                        "persistentVolumeClaim": {
+                            "claimName": "${GOGS_SERVICE_NAME}-data-claim"
+                        }
+                    }
+                    ],
+                    "restartPolicy": "Always",
+                    "dnsPolicy": "ClusterFirst",
+                    "serviceAccount": "gogs",
+                    "serviceAccountName": "gogs"
+                }
+            }
+        },
+        "status": {}
+    }],
+    "parameters": [{
+        "name": "MEMORY_LIMIT",
+        "displayName": "Memory Limit",
+        "description": "Maximum amount of memory the container can use.",
+        "value": "256Mi"
+    }, {
+        "name": "GOGS_SERVICE_NAME",
+        "displayName": "Database Service Name",
+        "description": "The name of the OpenShift Service exposed for the database.",
+        "value": "gogs",
+        "required": true
+    }, {
+        "name": "GIT_VOLUME_CAPACITY",
+        "displayName": "Volume Capacity",
+        "description": "Volume space available for data, e.g. 512Mi, 2Gi.",
+        "value": "512Gi",
+        "required": true
+    },
+
+    {
+        "name": "DATA_VOLUME_CAPACITY",
+        "displayName": "Volume Capacity",
+        "description": "Volume space available for data, e.g. 512Mi, 2Gi.",
+        "value": "2Gi",
+        "required": true
+    },
+
+     {
+        "description": "Custom hostname for service routes.  Leave blank for default hostname, e.g.: <application-name>.<project>.<default-domain-suffix>",
+        "displayName": "Nexus instance hostname",
+        "name": "APPLICATION_HOSTNAME"
+    }],
+    "labels": {
+        "template": "gogs-persistent-template"
+    }
+}
