@@ -32,39 +32,6 @@
         "status": {
             "loadBalancer": {}
         }
-    }, {
-        "kind": "PersistentVolumeClaim",
-        "apiVersion": "v1",
-        "metadata": {
-            "name": "${GOGS_SERVICE_NAME}-git-claim"
-        },
-        "spec": {
-            "accessModes": [
-                "ReadWriteOnce"
-            ],
-            "resources": {
-                "requests": {
-                    "storage": "${GIT_VOLUME_CAPACITY}"
-                }
-            }
-        }
-    },
-    {
-        "kind": "PersistentVolumeClaim",
-        "apiVersion": "v1",
-        "metadata": {
-            "name": "${GOGS_SERVICE_NAME}-data-claim"
-        },
-        "spec": {
-            "accessModes": [
-                "ReadWriteOnce"
-            ],
-            "resources": {
-                "requests": {
-                    "storage": "${DATA_VOLUME_CAPACITY}"
-                }
-            }
-        }
     },
     {
         "kind": "Route",
@@ -137,16 +104,6 @@
                                 "memory": "${MEMORY_LIMIT}"
                             }
                         },
-                        "volumeMounts": [
-                        {
-                            "name": "${GOGS_SERVICE_NAME}-git",
-                            "mountPath": "/home/git"
-                        },
-                        {
-                        "name": "${GOGS_SERVICE_NAME}-data",
-                        "mountPath": "/opt/gogs/data"
-                        }
-                    ],
                         "terminationMessagePath": "/dev/termination-log",
                         "imagePullPolicy": "IfNotPresent",
                         "capabilities": {},
@@ -155,20 +112,6 @@
                             "privileged": true
                         }
                     }],
-                    "volumes": [
-                    {
-                        "name": "${GOGS_SERVICE_NAME}-git",
-                        "persistentVolumeClaim": {
-                            "claimName": "${GOGS_SERVICE_NAME}-git-claim"
-                        }
-                    },
-                    {
-                        "name": "${GOGS_SERVICE_NAME}-data",
-                        "persistentVolumeClaim": {
-                            "claimName": "${GOGS_SERVICE_NAME}-data-claim"
-                        }
-                    }
-                    ],
                     "restartPolicy": "Always",
                     "dnsPolicy": "ClusterFirst",
                     "serviceAccount": "gogs",
@@ -189,21 +132,7 @@
         "description": "The name of the OpenShift Service exposed for the database.",
         "value": "gogs",
         "required": true
-    }, {
-        "name": "GIT_VOLUME_CAPACITY",
-        "displayName": "Volume Capacity",
-        "description": "Volume space available for data, e.g. 512Mi, 2Gi.",
-        "value": "512Mi",
-        "required": true
-    },
-
-    {
-        "name": "DATA_VOLUME_CAPACITY",
-        "displayName": "Volume Capacity",
-        "description": "Volume space available for data, e.g. 512Mi, 2Gi.",
-        "value": "2Gi",
-        "required": true
-    },
+    }, 
 
      {
         "description": "Custom hostname for service routes.  Leave blank for default hostname, e.g.: <application-name>.<project>.<default-domain-suffix>",
