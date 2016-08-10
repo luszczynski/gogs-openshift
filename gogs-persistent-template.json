@@ -80,7 +80,7 @@
                 "spec": {
                     "containers": [{
                         "name": "gogs",
-                        "image": "fabric8/gogs:2.2.218",
+                        "image": "luszczynski/gogs-ose",
                         "ports": [{
                             "containerPort": 3000,
                             "protocol": "TCP"
@@ -132,7 +132,7 @@
         "description": "The name of the OpenShift Service exposed for the database.",
         "value": "gogs",
         "required": true
-    }, 
+    },
 
      {
         "description": "Custom hostname for service routes.  Leave blank for default hostname, e.g.: <application-name>.<project>.<default-domain-suffix>",
